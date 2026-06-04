@@ -140,7 +140,7 @@ with st.sidebar:
         st.success("✅ Connected to backend")
     else:
         st.warning("⚠️ Not verified — click above")
-        st.caption("Make sure the backend is running:\n```\nuvicorn app.main:app --reload\n```")
+        st.caption("Make sure the backend is running with Uvicorn.")
 
     st.divider()
 
