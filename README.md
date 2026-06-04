@@ -1,64 +1,57 @@
-# PaperIQ
+# PaperIQ — Streamlit Frontend
 
-AI-powered research paper summarizer, citation helper, and evidence finder.
-Built with FastAPI (backend) + Streamlit (frontend). Works fully offline after setup.
+The frontend for PaperIQ — runs on Streamlit and connects to the FastAPI backend.
 
-## Project Structure
+## Requirements
 
-```
-PaperIQ/
-├── paperiq-backend/    ← FastAPI backend (Python)
-└── paperiq-frontend/   ← Streamlit frontend (Python)
-```
+- Python 3.10+
+- PaperIQ backend running on `http://localhost:8000`
 
-## Quick Start
-
-### 1. Backend
+## Setup
 
 ```bash
-cd paperiq-backend
-python -m venv venv
-venv\Scripts\activate        # Windows
-source venv/bin/activate     # macOS / Ubuntu
+# 1. Install dependencies
 pip install -r requirements.txt
-cp .env.example .env
-uvicorn app.main:app --reload
-```
 
-Backend runs at: http://localhost:8000
-Swagger UI: http://localhost:8000/docs
-
-### 2. Frontend (new terminal)
-
-```bash
-cd paperiq-frontend
-pip install -r requirements.txt
+# 2. Run the frontend
 streamlit run app.py
 ```
 
-Frontend runs at: http://localhost:8501
+Opens at: `http://localhost:8501`
 
-## Features
+## Folder Structure
 
-- Upload research paper PDFs (up to 20 MB)
-- Extract text page by page with OCR fallback
-- Auto-detect sections (Abstract, Introduction, Methodology, etc.)
-- Generate 5 types of summaries (short, detailed, section-wise, key findings, beginner-friendly)
-- Generate APA and IEEE citations from extracted metadata
-- Ask questions about the paper with page-numbered evidence
-- Manually correct extracted metadata
-- Optional Crossref DOI verification
+```
+paperiq-frontend/
+├── app.py                    ← Main entry point (layout, routing, CSS)
+├── api_client.py             ← All backend HTTP calls
+├── requirements.txt
+├── .streamlit/
+│   └── config.toml           ← Theme and server settings
+└── pages_ui/
+    ├── upload_page.py        ← Upload + processing pipeline
+    ├── summary_page.py       ← All 5 summary types
+    ├── citation_page.py      ← APA + IEEE citation generation
+    ├── ask_page.py           ← Q&A with evidence passages
+    └── metadata_page.py      ← Manual metadata correction
+```
 
-## Tech Stack
+## Pages
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | FastAPI + SQLite + SQLAlchemy |
-| PDF Extraction | PyMuPDF + Tesseract OCR |
-| Summarization | HuggingFace distilbart-cnn-12-6 |
-| Semantic Search | sentence-transformers all-MiniLM-L6-v2 |
-| Frontend | Streamlit |
+| Page | What it does |
+|------|-------------|
+| **Upload** | Upload PDF → trigger processing → poll until complete |
+| **Summaries** | Choose from 5 summary types, view with evidence |
+| **Citations** | Generate APA or IEEE, copy to clipboard |
+| **Ask Questions** | Ask anything, get answer + page-numbered evidence |
+| **Edit Metadata** | Correct title/authors/year/journal/DOI |
 
-## First Run Note
+## Deploying to Streamlit Cloud
 
-The first time you generate a summary or ask a question, the AI models download (~600 MB total) and cache locally. All subsequent runs are fully offline.
+1. Push this folder to a GitHub repository
+2. Go to https://share.streamlit.io
+3. Connect your repo and set `app.py` as the main file
+4. Set the backend URL in `api_client.py` to your deployed backend URL
+
+> **Note:** For Streamlit Cloud deployment, update `BASE_URL` in `api_client.py`
+> to point to your hosted backend (e.g. a Railway or Render deployment).
