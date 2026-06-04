@@ -8,7 +8,7 @@ import time
 import requests
 
 BASE_URL = "https://AyeshaAkbar00-paperiq-backend.hf.space/api/v1"
-TIMEOUT = 180  # seconds
+TIMEOUT = 300  # seconds
 
 
 class APIError(Exception):
@@ -108,7 +108,7 @@ def generate_summary(paper_id: str, summary_type: str) -> dict:
     r = requests.post(
         f"{BASE_URL}/papers/{paper_id}/summaries",
         json={"summary_type": summary_type},
-        timeout=120,  # model inference can be slow first time
+        timeout=300,  # model inference can be slow first time
     )
     return _handle(r)
 
