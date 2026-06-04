@@ -8,7 +8,7 @@ import time
 import requests
 
 BASE_URL = "https://AyeshaAkbar00-paperiq-backend.hf.space/api/v1"
-TIMEOUT = 30  # seconds
+TIMEOUT = 180  # seconds
 
 
 class APIError(Exception):
