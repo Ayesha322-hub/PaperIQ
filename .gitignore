@@ -2,12 +2,15 @@
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyd
 .Python
+*.egg
 *.egg-info/
 dist/
 build/
+.eggs/
 
-# Virtual environments
+# Virtual environment
 venv/
 .venv/
 env/
@@ -20,21 +23,24 @@ env/
 *.sqlite
 *.sqlite3
 
-# Uploaded files
-paperiq-backend/uploads/
+# Uploads (don't commit user files)
+uploads/
 
-# HuggingFace model cache
-.cache/
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
 
 # IDE
 .vscode/
 .idea/
 *.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Pytest
-.pytest_cache/
-.coverage
+# HuggingFace model cache (large files)
+.cache/
+models/

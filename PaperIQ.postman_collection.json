@@ -1,0 +1,404 @@
+{
+  "info": {
+    "name": "PaperIQ API",
+    "description": "Complete API collection for PaperIQ backend.\n\nImport this file into Postman.\nSet the `base_url` variable to your backend URL (default: http://localhost:8000).\n\nTypical flow:\n1. Upload → get paper_id\n2. Process → trigger pipeline\n3. Status → poll until completed\n4. Details → view metadata\n5. Metadata (optional) → correct any wrong fields\n6. Summary → generate summary\n7. Citation → format reference\n8. Ask → question answering",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "paper_id",
+      "value": "paste-your-paper-id-here",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "Confirms the backend is running. Call this first."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"ok\",\n  \"app\": \"PaperIQ\",\n  \"version\": \"1.0.0\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Papers",
+      "item": [
+        {
+          "name": "Upload Paper",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.paper_id) {",
+                  "    pm.collectionVariables.set('paper_id', json.paper_id);",
+                  "    console.log('paper_id saved:', json.paper_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select your PDF file here"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "upload"]
+            },
+            "description": "Upload a research paper PDF (max 20 MB).\n\nThe `paper_id` from the response is automatically saved to the `paper_id` collection variable."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"paper_id\": \"29c6d4c2-51ab-4e7e-a38d-590a61d62d43\",\n  \"filename\": \"research-paper.pdf\",\n  \"status\": \"uploaded\"\n}"
+            },
+            {
+              "name": "Not a PDF",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"detail\": \"Only PDF files are accepted.\"\n}"
+            },
+            {
+              "name": "File Too Large",
+              "status": "Request Entity Too Large",
+              "code": 413,
+              "body": "{\n  \"detail\": \"The PDF exceeds the 20 MB size limit.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Process Paper",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "process"]
+            },
+            "description": "Trigger the full processing pipeline.\nAfter calling this, poll GET /status until status = 'completed'."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"paper_id\": \"29c6d4c2-51ab-4e7e-a38d-590a61d62d43\",\n  \"status\": \"processing\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Check Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "status"]
+            },
+            "description": "Poll this after /process.\nWait for status = 'completed' before calling summaries, citations, or ask."
+          },
+          "response": [
+            {
+              "name": "Completed",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"paper_id\": \"29c6d4c2-51ab-4e7e-a38d-590a61d62d43\",\n  \"status\": \"completed\",\n  \"total_pages\": 12,\n  \"characters_extracted\": 28740,\n  \"ocr_used\": false,\n  \"error_message\": null\n}"
+            },
+            {
+              "name": "Still Processing",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"paper_id\": \"29c6d4c2-51ab-4e7e-a38d-590a61d62d43\",\n  \"status\": \"processing\",\n  \"total_pages\": 0,\n  \"characters_extracted\": 0,\n  \"ocr_used\": false,\n  \"error_message\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Paper Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}"]
+            },
+            "description": "Get all extracted metadata and detected sections."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"paper_id\": \"29c6d4c2-51ab-4e7e-a38d-590a61d62d43\",\n  \"filename\": \"research-paper.pdf\",\n  \"title\": \"Machine Learning for Student Performance Prediction\",\n  \"authors\": [\"Ali Khan\", \"Sara Ahmed\"],\n  \"year\": 2025,\n  \"journal\": \"IJCAI\",\n  \"doi\": \"10.1145/1234567.89\",\n  \"abstract\": \"This study investigates...\",\n  \"total_pages\": 12,\n  \"sections\": [\"Abstract\", \"Introduction\", \"Methodology\", \"Results\", \"Conclusion\", \"References\"],\n  \"processing_status\": \"completed\",\n  \"ocr_used\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Metadata (Manual Edit)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Corrected Paper Title\",\n  \"authors\": [\"Ali Khan\", \"Sara Ahmed\"],\n  \"year\": 2025,\n  \"journal\": \"IEEE Transactions on Learning Technologies\",\n  \"doi\": \"10.1109/TLT.2025.12345\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/metadata",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "metadata"]
+            },
+            "description": "Correct any metadata that was extracted incorrectly from the PDF.\nAll fields are optional — only include what you want to change.\nThis clears cached citations so they regenerate with the corrected data."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"paper_id\": \"29c6d4c2-51ab-4e7e-a38d-590a61d62d43\",\n  \"title\": \"Corrected Paper Title\",\n  \"authors\": [\"Ali Khan\", \"Sara Ahmed\"],\n  \"year\": 2025,\n  \"journal\": \"IEEE Transactions on Learning Technologies\",\n  \"doi\": \"10.1109/TLT.2025.12345\",\n  \"message\": \"Updated fields: title, authors, year, journal, doi. Cached citations cleared.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Summaries",
+      "item": [
+        {
+          "name": "Short Summary",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"summary_type\": \"short\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/summaries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "summaries"]
+            },
+            "description": "3–5 bullet points covering the whole paper."
+          }
+        },
+        {
+          "name": "Detailed Summary",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"summary_type\": \"detailed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/summaries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "summaries"]
+            },
+            "description": "One paragraph per section."
+          }
+        },
+        {
+          "name": "Section-Wise Summary",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"summary_type\": \"section_wise\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/summaries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "summaries"]
+            }
+          }
+        },
+        {
+          "name": "Key Findings",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"summary_type\": \"key_findings\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/summaries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "summaries"]
+            },
+            "description": "Results, Discussion, and Conclusion sections only."
+          }
+        },
+        {
+          "name": "Beginner Friendly",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"summary_type\": \"beginner_friendly\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/summaries",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "summaries"]
+            },
+            "description": "Plain-language explanation for non-experts."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Citations",
+      "item": [
+        {
+          "name": "APA Citation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"citation_style\": \"apa\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/citations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "citations"]
+            },
+            "description": "Generate an APA 7th edition citation."
+          }
+        },
+        {
+          "name": "IEEE Citation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"citation_style\": \"ieee\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/citations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "citations"]
+            },
+            "description": "Generate an IEEE citation."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Questions",
+      "item": [
+        {
+          "name": "Ask About Dataset",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What dataset did the researchers use?\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/ask",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "ask"]
+            }
+          }
+        },
+        {
+          "name": "Ask About Methodology",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What methods or algorithms were used?\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/ask",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "ask"]
+            }
+          }
+        },
+        {
+          "name": "Ask About Results",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What were the main results and accuracy?\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/ask",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "ask"]
+            }
+          }
+        },
+        {
+          "name": "Ask About Limitations",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What are the limitations of this study?\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/papers/{{paper_id}}/ask",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "papers", "{{paper_id}}", "ask"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
