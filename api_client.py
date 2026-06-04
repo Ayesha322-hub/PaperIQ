@@ -7,7 +7,7 @@ Never call requests directly from the UI pages.
 import time
 import requests
 
-BASE_URL = "http://localhost:8000/api/v1"
+BASE_URL = "https://huggingface.co/spaces/AyeshaAkbar00/paperiq-Backend"
 TIMEOUT = 30  # seconds
 
 
