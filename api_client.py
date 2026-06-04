@@ -7,7 +7,7 @@ Never call requests directly from the UI pages.
 import time
 import requests
 
-BASE_URL = "https://AyeshaAkbar00-paperiq-backend.hf.space"
+BASE_URL = "https://AyeshaAkbar00-paperiq-backend.hf.space/api/v1"
 TIMEOUT = 30  # seconds
 
 
