@@ -1,16 +1,15 @@
 """
 PaperIQ — Summary Page
 """
-
 import streamlit as st
-from api_client import APIError, generate_summary, get_paper
+from api_client import APIError, generate_summary
 
 SUMMARY_TYPES = {
-    "short":             ("⚡", "Quick Summary",        "3–5 bullet points covering the whole paper"),
-    "detailed":          ("📋", "Full Summary",          "One detailed paragraph per section"),
-    "section_wise":      ("🗂️", "By Section",            "Summary of every detected section"),
-    "key_findings":      ("🔑", "Key Findings",          "Results, Discussion and Conclusion only"),
-    "beginner_friendly": ("🎓", "Simple Explanation",    "Plain language for non-experts"),
+    "short":             ("⚡", "Quick Summary",       "3–5 bullet points covering the whole paper"),
+    "detailed":          ("📋", "Full Summary",         "One detailed paragraph per section"),
+    "section_wise":      ("🗂️", "By Section",           "Summary of every detected section"),
+    "key_findings":      ("🔑", "Key Findings",         "Results, Discussion and Conclusion only"),
+    "beginner_friendly": ("🎓", "Simple Explanation",   "Plain language for non-experts"),
 }
 
 
@@ -20,16 +19,17 @@ def render():
         st.warning("No paper loaded. Please upload a paper first.")
         return
 
-    # Refresh detail if needed
     detail = st.session_state.get("paper_detail") or {}
     title = detail.get("title") or "Untitled Paper"
 
-    st.markdown(f"## 📝 Summaries")
-    st.markdown(f"**Paper:** {title}")
-    st.divider()
+    st.markdown(f"""
+    <div class="piq-hero">
+        <h1>📝 <span class="accent">Summaries</span></h1>
+        <p>{title}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # ── Summary type selector ─────────────────────────────────────────────────
-    st.markdown("### Choose Summary Type")
+    st.markdown('<div class="piq-section-title">Choose Summary Type</div>', unsafe_allow_html=True)
     cols = st.columns(len(SUMMARY_TYPES))
     selected_type = st.session_state.get("selected_summary_type", "short")
 
@@ -37,7 +37,7 @@ def render():
         with cols[i]:
             is_selected = selected_type == key
             if st.button(
-                f"{icon}\n{label}",
+                f"{icon}  {label}",
                 key=f"sum_btn_{key}",
                 use_container_width=True,
                 type="primary" if is_selected else "secondary",
@@ -48,10 +48,9 @@ def render():
 
     selected_type = st.session_state.get("selected_summary_type", "short")
     icon, label, desc = SUMMARY_TYPES[selected_type]
-    st.caption(f"{icon} **{label}** — {desc}")
+    st.markdown(f'<div style="color:#94a3b8;font-size:0.85rem;margin:0.5rem 0 1rem;">{icon} <strong style="color:#a78bfa;">{label}</strong> — {desc}</div>', unsafe_allow_html=True)
     st.divider()
 
-    # ── Generate button ───────────────────────────────────────────────────────
     cache_key = f"summary_{paper_id}_{selected_type}"
 
     if cache_key not in st.session_state:
@@ -65,15 +64,14 @@ def render():
                     st.error(f"❌ {e.detail}")
         return
 
-    # ── Display summary ───────────────────────────────────────────────────────
     result = st.session_state[cache_key]
     points = result.get("summary_points", [])
 
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.markdown(f"### {icon} {label}")
+        st.markdown(f'<div class="piq-section-title">{icon} {label}</div>', unsafe_allow_html=True)
     with col2:
-        if st.button("🔄 Regenerate", help="Clear cache and regenerate"):
+        if st.button("🔄  Regenerate"):
             del st.session_state[cache_key]
             st.rerun()
 
@@ -81,20 +79,18 @@ def render():
         st.info("No summary points were generated. The paper may be too short.")
         return
 
-    st.markdown(f"*{len(points)} point{'s' if len(points) != 1 else ''} generated*")
-    st.markdown("")
+    st.markdown(f'<div style="color:#64748b;font-size:0.85rem;margin-bottom:1rem;">{len(points)} point{"s" if len(points) != 1 else ""} generated</div>', unsafe_allow_html=True)
 
     for i, point in enumerate(points, 1):
         _render_summary_point(i, point)
 
-    # ── Export ────────────────────────────────────────────────────────────────
     st.divider()
-    st.markdown("#### 📋 Copy as Text")
+    st.markdown('<div class="piq-section-title">📋 Export as Text</div>', unsafe_allow_html=True)
     full_text = "\n\n".join(
         f"{i}. [{p.get('section', 'General')}] {p['text']}"
         for i, p in enumerate(points, 1)
     )
-    st.text_area("Summary text (select all and copy)", full_text, height=200, label_visibility="collapsed")
+    st.text_area("Select all and copy", full_text, height=180, label_visibility="collapsed")
 
 
 def _render_summary_point(index: int, point: dict):
@@ -104,25 +100,25 @@ def _render_summary_point(index: int, point: dict):
     text = point.get("text", "")
     evidence = point.get("evidence")
 
-    with st.container():
-        # Header row
-        h_col1, h_col2, h_col3 = st.columns([1, 4, 1])
-        with h_col1:
-            st.markdown(f"**#{index}**")
-        with h_col2:
-            st.markdown(
-                f'<span style="background:#e3f2fd;color:#1565c0;padding:0.15rem 0.5rem;'
-                f'border-radius:4px;font-size:0.78rem;font-weight:600;">{section}</span>'
-                + (f'  📄 Page {page}' if page else ''),
-                unsafe_allow_html=True,
-            )
-        with h_col3:
-            st.markdown(f"*{score:.0%}*")
+    page_str = f"· Page {page}" if page else ""
+    score_str = f"{score:.0%}" if score else ""
 
-        st.markdown(f"> {text}")
+    st.markdown(f"""
+    <div class="summary-point">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+            <div>
+                <span style="color:#64748b;font-weight:700;font-size:0.85rem;">#{index}</span>
+                &nbsp;
+                <span class="section-tag">{section}</span>
+                &nbsp;
+                <span style="color:#64748b;font-size:0.8rem;">{page_str}</span>
+            </div>
+            <span style="color:#a78bfa;font-size:0.8rem;font-weight:600;">{score_str}</span>
+        </div>
+        <div style="color:#cbd5e1;line-height:1.6;">{text}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        if evidence:
-            with st.expander("📎 View source passage"):
-                st.markdown(f"*{evidence[:400]}{'...' if len(evidence) > 400 else ''}*")
-
-        st.markdown("---")
+    if evidence:
+        with st.expander("📎 View source passage"):
+            st.markdown(f'<div style="color:#94a3b8;font-style:italic;font-size:0.88rem;">{evidence[:400]}{"..." if len(evidence) > 400 else ""}</div>', unsafe_allow_html=True)

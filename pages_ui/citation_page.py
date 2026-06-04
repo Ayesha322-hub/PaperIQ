@@ -1,10 +1,8 @@
 """
 PaperIQ — Citation Page
 """
-
 import streamlit as st
 from api_client import APIError, generate_citation
-
 
 CITATION_STYLES = {
     "apa":  ("📖", "APA 7th Edition", "Author, A. (Year). Title. Journal."),
@@ -21,29 +19,29 @@ def render():
     detail = st.session_state.get("paper_detail") or {}
     title = detail.get("title") or "Untitled Paper"
 
-    st.markdown("## 📚 Citation Generator")
-    st.markdown(f"**Paper:** {title}")
-    st.divider()
+    st.markdown(f"""
+    <div class="piq-hero">
+        <h1>📚 <span class="accent">Citations</span></h1>
+        <p>{title}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # ── Show current metadata ─────────────────────────────────────────────────
-    with st.expander("📋 Metadata used for citation (click to review)", expanded=True):
+    with st.expander("📋 Metadata used for citation", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown(f"**Title:** {detail.get('title') or '—'}")
-            st.markdown(f"**Authors:** {', '.join(detail.get('authors', [])) or '—'}")
-            st.markdown(f"**Year:** {detail.get('year') or '—'}")
+            st.markdown(f'<div style="color:#94a3b8;font-size:0.88rem;">Title</div><div style="color:#e2e8f0;margin-bottom:0.7rem;">{detail.get("title") or "—"}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="color:#94a3b8;font-size:0.88rem;">Authors</div><div style="color:#e2e8f0;margin-bottom:0.7rem;">{", ".join(detail.get("authors", [])) or "—"}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="color:#94a3b8;font-size:0.88rem;">Year</div><div style="color:#e2e8f0;">{detail.get("year") or "—"}</div>', unsafe_allow_html=True)
         with col2:
-            st.markdown(f"**Journal:** {detail.get('journal') or '—'}")
-            st.markdown(f"**DOI:** {detail.get('doi') or '—'}")
-
-        if st.button("✏️ Edit Metadata", help="Correct wrong fields before generating citation"):
+            st.markdown(f'<div style="color:#94a3b8;font-size:0.88rem;">Journal</div><div style="color:#e2e8f0;margin-bottom:0.7rem;">{detail.get("journal") or "—"}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="color:#94a3b8;font-size:0.88rem;">DOI</div><div style="color:#e2e8f0;">{detail.get("doi") or "—"}</div>', unsafe_allow_html=True)
+        if st.button("✏️  Edit Metadata"):
             st.session_state.current_page = "metadata"
             st.rerun()
 
-    st.divider()
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="piq-section-title">Choose Citation Style</div>', unsafe_allow_html=True)
 
-    # ── Style selector ────────────────────────────────────────────────────────
-    st.markdown("### Choose Citation Style")
     col1, col2 = st.columns(2)
     selected_style = st.session_state.get("selected_citation_style", "apa")
 
@@ -52,7 +50,7 @@ def render():
         with col:
             is_active = selected_style == style_key
             if st.button(
-                f"{icon} {label}",
+                f"{icon}  {label}",
                 key=f"cite_btn_{style_key}",
                 use_container_width=True,
                 type="primary" if is_active else "secondary",
@@ -63,10 +61,9 @@ def render():
 
     selected_style = st.session_state.get("selected_citation_style", "apa")
     icon, label, example = CITATION_STYLES[selected_style]
-    st.caption(f"Format: *{example}*")
+    st.markdown(f'<div style="color:#94a3b8;font-size:0.85rem;margin:0.5rem 0 1rem;font-style:italic;">Format: {example}</div>', unsafe_allow_html=True)
     st.divider()
 
-    # ── Generate ──────────────────────────────────────────────────────────────
     cache_key = f"citation_{paper_id}_{selected_style}"
 
     if cache_key not in st.session_state:
@@ -80,30 +77,24 @@ def render():
                     st.error(f"❌ {e.detail}")
         return
 
-    # ── Display citation ──────────────────────────────────────────────────────
     result = st.session_state[cache_key]
     reference = result.get("formatted_reference", "")
     status = result.get("verification_status", "")
 
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.markdown(f"### {icon} {label} Citation")
+        st.markdown(f'<div class="piq-section-title">{icon} {label} Citation</div>', unsafe_allow_html=True)
     with col2:
-        if st.button("🔄 Regenerate"):
+        if st.button("🔄  Regenerate"):
             del st.session_state[cache_key]
             st.rerun()
 
-    # Citation box
-    st.markdown(
-        f'<div class="citation-box">{reference}</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(f'<div class="citation-box">{reference}</div>', unsafe_allow_html=True)
 
-    # Status badge
     status_config = {
-        "verified_crossref":           ("✅", "Verified via Crossref",           "success"),
-        "generated_from_pdf_metadata": ("📄", "Generated from PDF metadata",     "info"),
-        "needs_review":                ("⚠️", "Incomplete metadata — needs review", "warning"),
+        "verified_crossref":           ("✅", "Verified via Crossref",              "success"),
+        "generated_from_pdf_metadata": ("📄", "Generated from PDF metadata",        "info"),
+        "needs_review":                ("⚠️", "Incomplete metadata — needs review",  "warning"),
     }
     s_icon, s_label, s_type = status_config.get(status, ("❓", status, "info"))
 
@@ -114,23 +105,12 @@ def render():
     else:
         st.info(f"{s_icon} {s_label}")
 
-    # Always show manual review warning
-    st.warning(
-        "⚠️ **Always verify before submitting academic work.** "
-        "Metadata extracted from PDFs can be incomplete or inaccurate."
-    )
+    st.warning("⚠️ **Always verify before submitting academic work.** Metadata extracted from PDFs can be incomplete or inaccurate.")
 
-    # Copy section
     st.divider()
-    st.markdown("#### 📋 Copy Citation")
-    st.text_area(
-        "Select all and copy",
-        reference,
-        height=100,
-        label_visibility="collapsed",
-    )
+    st.markdown('<div class="piq-section-title">📋 Copy Citation</div>', unsafe_allow_html=True)
+    st.text_area("Select all and copy", reference, height=100, label_visibility="collapsed")
 
-    # Both styles at once
     st.divider()
     other_style = "ieee" if selected_style == "apa" else "apa"
     other_key = f"citation_{paper_id}_{other_style}"
